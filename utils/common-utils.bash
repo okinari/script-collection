@@ -7,7 +7,7 @@ ERROR_OUTPUT="${LOG_DIR}/error.log"
 # 指定されたディレクトリ配下の「.DS_Store」ファイルを削除する
 function delete_DS_Store() {
     if [ -f $1/.DS_Store ]; then
-        rm $1/.DS_Store
+        rm $1/.DS_Store 1>>${STANDART_OUTPUT} 2>>${ERROR_OUTPUT}
     fi
     return 0
 }
@@ -39,10 +39,10 @@ function numbering_only_imagefile() {
     local i=1
     local num=''
 
-    for _filename in ${_DIRPATH}/* ; do
+    for _filename in `ls ${_DIRPATH}` ; do
 
         # ファイルパス、拡張子を取得
-        local readonly _FILEPATH=${_filename}
+        local readonly _FILEPATH=${_DIRPATH}/${_filename}
         local _extension=${_FILEPATH##*.}
 
         if [ ${_extension} = jpg ] || [ ${_extension} = JPG ] || [ ${_extension} = jpeg ] || [ ${_extension} = JPEG ] ; then
@@ -70,7 +70,7 @@ function numbering_only_imagefile() {
         fi
 
         # ファイル名変換(上書きしない)
-        mv -n ${_FILEPATH} ${_DIRPATH}/${num}.${_extension}
+        mv -n ${_FILEPATH} ${_DIRPATH}/${num}.${_extension} 1>>${STANDART_OUTPUT} 2>>${ERROR_OUTPUT}
 
         # 連番を1つ増やす
         i=`expr $i + 1`

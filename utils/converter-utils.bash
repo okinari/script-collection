@@ -1,6 +1,6 @@
 #! /bin/bash
 
-source common-utils.bash
+source ${BASH_SOURCE%/*}/common-utils.bash
 
 # 必要な各コマンドの存在をチェックする
 function check_command() {
@@ -31,6 +31,7 @@ function convert_zip_to_pdf() {
 
     # zipファイルを解凍
     unzip ${_FILEPATH} -d ${_FILEPATH%/*} 1>>${STANDART_OUTPUT} 2>>${ERROR_OUTPUT}
+    echo "${_FILEPATH} unzip complete."
 
     # pdf生成
     generate_pdf_from_image_file_in_dir ${_DIRPATH}
@@ -66,7 +67,8 @@ function generate_zip_from_dir() {
     delete_DS_Store ${_DIRPATH}
 
     # ディレクトリをzipに固める
-    zip -r ${_DIRPATH}.zip ${_DIRPATH}
+    zip --recurse-paths --junk-paths ${_DIRPATH}.zip ${_DIRPATH} 1>>${STANDART_OUTPUT} 2>>${ERROR_OUTPUT}
+    echo "${_DIRPATH} zip generation complete."
 
     return 0
 }
@@ -85,6 +87,7 @@ function generate_pdf_from_image_file_in_dir() {
 
     # PDFに変換されたファイルを１つのPDFに結合(252ファイルを超えると処理できないので注意)
     pdfunite ${_DIRPATH}/*.pdf ${_DIRPATH}.pdf 1>>${STANDART_OUTPUT} 2>>${ERROR_OUTPUT}
+    echo "${_DIRPATH} pdf generation complete."
 
     return 0
 }
