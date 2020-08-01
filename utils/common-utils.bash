@@ -6,8 +6,8 @@ ERROR_OUTPUT="${LOG_DIR}/error.log"
 
 # 指定されたディレクトリ配下の「.DS_Store」ファイルを削除する
 function delete_DS_Store() {
-    if [ -f $1/.DS_Store ]; then
-        rm $1/.DS_Store 1>>${STANDART_OUTPUT} 2>>${ERROR_OUTPUT}
+    if [ -f "$1/.DS_Store" ] ; then
+        rm "$1/.DS_Store" 1>>"${STANDART_OUTPUT}" 2>>"${ERROR_OUTPUT}"
     fi
     return 0
 }
@@ -37,40 +37,51 @@ function numbering_only_imagefile() {
 
     # 連番にするための変数
     local i=1
-    local num=''
+
+    # まずは10桁に変換
+    for _filename in `ls ${_DIRPATH}` ; do
+
+        # ファイルパスを取得
+        local readonly _FILEPATH=${_DIRPATH}/${_filename}
+
+        # 拡張子を取得
+        local readonly _EXTENSION=`get_image_extension "${_FILEPATH}"`
+        if [ $? -ne 0 ] ; then
+            echo ${_EXTENSION}
+            return 1
+        fi
+
+        # 連番をゼロパディング(10桁)
+        local readonly _FILE_NUMBER=`get_zero_padded_value ${i} 10`
+
+        # ファイル名変換(上書きしない)
+        mv -n "${_FILEPATH}" "${_DIRPATH}/${_FILE_NUMBER}.${_EXTENSION}" 1>>"${STANDART_OUTPUT}" 2>>"${ERROR_OUTPUT}"
+
+        # 連番を1つ増やす
+        i=`expr $i + 1`
+    done
+
+    # 連番をリセット
+    i=1
 
     for _filename in `ls ${_DIRPATH}` ; do
 
-        # ファイルパス、拡張子を取得
+        # ファイルパスを取得
         local readonly _FILEPATH=${_DIRPATH}/${_filename}
-        local _extension=${_FILEPATH##*.}
+        #local _extension=${_FILEPATH##*.}
 
-        if [ ${_extension} = jpg ] || [ ${_extension} = JPG ] || [ ${_extension} = jpeg ] || [ ${_extension} = JPEG ] ; then
-            _extension=jpg
-        elif [ ${_extension} = png ] || [ ${_extension} = PNG ] ; then
-            _extension=png
-        elif [ ${_extension} = gif ] || [ ${_extension} = GIF ] ; then
-            _extension=gif
-        elif [ ${_extension} = bmp ] || [ ${_extension} = BMP ] ; then
-            _extension=bmp
-        elif [ ${_extension} = tif ] || [ ${_extension} = TIF ] || [ ${_extension} = tiff ] || [ ${_extension} = TIFF ] ; then
-            _extension=tif
-        else
-            echo 'no image.'
+        # 拡張子を取得
+        local readonly _EXTENSION=`get_image_extension "${_FILEPATH}"`
+        if [ $? -ne 0 ] ; then
+            echo ${_EXTENSION}
             return 1
         fi
 
         # 連番をゼロパディング(3桁)
-        if [ ${i} -lt 10 ] ; then
-            num=00${i}
-        elif [ ${i} -lt 100 ] ; then
-            num=0${i}
-        else
-            num=${i}
-        fi
+        local readonly _FILE_NUMBER=`get_zero_padded_value ${i} 3`
 
         # ファイル名変換(上書きしない)
-        mv -n ${_FILEPATH} ${_DIRPATH}/${num}.${_extension} 1>>${STANDART_OUTPUT} 2>>${ERROR_OUTPUT}
+        mv -n "${_FILEPATH}" "${_DIRPATH}/${_FILE_NUMBER}.${_EXTENSION}" 1>>"${STANDART_OUTPUT}" 2>>"${ERROR_OUTPUT}"
 
         # 連番を1つ増やす
         i=`expr $i + 1`
@@ -79,5 +90,46 @@ function numbering_only_imagefile() {
     # 区切り文字を元に戻す
     IFS=$PRE_IFS
 
+    return 0
+}
+
+# 拡張子が画像ファイルのものならば、拡張子を取得する
+# 画像ファイル以外の拡張子の場合、エラーとなる
+function get_image_extension() {
+
+    # ファイル名の末尾の.(ドット)以降を取得
+    local readonly _extension=${1##*.}
+
+    if [ ${_extension} = jpg ] || [ ${_extension} = JPG ] || [ ${_extension} = jpeg ] || [ ${_extension} = JPEG ] ; then
+        echo 'jpg'
+        return 0
+    elif [ ${_extension} = png ] || [ ${_extension} = PNG ] ; then
+        echo 'png'
+        return 0
+    elif [ ${_extension} = gif ] || [ ${_extension} = GIF ] ; then
+        echo 'gif'
+        return 0
+    elif [ ${_extension} = bmp ] || [ ${_extension} = BMP ] ; then
+        echo 'bmp'
+        return 0
+    elif [ ${_extension} = tif ] || [ ${_extension} = TIF ] || [ ${_extension} = tiff ] || [ ${_extension} = TIFF ] ; then
+        echo 'tif'
+        return 0
+    fi
+
+    # いづれにも該当しない場合、エラー
+    echo "\nerror: '$1' is no image extension.\n"
+    return 1
+}
+
+# 指定された数値を指定された桁数でゼロパティングした値を取得する
+function get_zero_padded_value() {
+
+    # 指定された数値、桁数を取得
+    local readonly _TARGET_NUMBER=$1
+    local readonly _NUMBER_OF_DIGIT=$2
+
+    # 連番をゼロパディング(10桁)
+    echo `printf "%0${_NUMBER_OF_DIGIT}d" ${_TARGET_NUMBER}`
     return 0
 }
