@@ -9,7 +9,7 @@ function check_command() {
 
     for command in ${COMMAND_LIST[@]}
     do
-        if type ${command} 1>>${STANDART_OUTPUT} 2>>${ERROR_OUTPUT}
+        if type ${command} 1>>"${STANDART_OUTPUT}" 2>>"${ERROR_OUTPUT}"
         then
             echo "OK. Command '${command}' exists"
         else
@@ -26,18 +26,18 @@ function check_command() {
 function convert_zip_to_pdf() {
 
     # 引数で指定されたzipファイル名から、zipファイルの絶対パスと解凍するディレクトリの絶対パスを取得
-    local readonly _FILEPATH=`get_realpath $1`
+    local readonly _FILEPATH=`get_realpath "$1"`
     local readonly _DIRPATH=${_FILEPATH%.zip}
 
     # zipファイルを解凍
-    unzip ${_FILEPATH} -d ${_FILEPATH%/*} 1>>${STANDART_OUTPUT} 2>>${ERROR_OUTPUT}
+    unzip "${_FILEPATH}" -d "${_DIRPATH}" 1>>"${STANDART_OUTPUT}" 2>>"${ERROR_OUTPUT}"
     echo "${_FILEPATH} unzip complete."
 
     # pdf生成
-    generate_pdf_from_image_file_in_dir ${_DIRPATH}
+    generate_pdf_from_image_file_in_dir "${_DIRPATH}"
 
     # 展開したファイルを削除
-    rm -rf ${_DIRPATH}
+    rm -rf "${_DIRPATH}"
 
     return 0
 }
@@ -46,13 +46,13 @@ function convert_zip_to_pdf() {
 function generate_zip_and_pdf_from_imagefile_in_dir() {
 
     # 対象ディレクトリの絶対パスを変数に保存
-    local readonly _DIRPATH=`get_realpath $1`
+    local readonly _DIRPATH=`get_realpath "$1"`
 
     # zip生成
-    generate_zip_from_dir ${_DIRPATH}
+    generate_zip_from_dir "${_DIRPATH}"
 
     # pdf生成
-    generate_pdf_from_image_file_in_dir ${_DIRPATH}
+    generate_pdf_from_image_file_in_dir "${_DIRPATH}"
 
     return 0
 }
@@ -61,13 +61,13 @@ function generate_zip_and_pdf_from_imagefile_in_dir() {
 function generate_zip_from_dir() {
 
     # 対象ディレクトリの絶対パスを変数に保存
-    local readonly _DIRPATH=`get_realpath $1`
+    local readonly _DIRPATH=`get_realpath "$1"`
 
     # DS_Storeがあれば、削除
-    delete_DS_Store ${_DIRPATH}
+    delete_DS_Store "${_DIRPATH}"
 
     # ディレクトリをzipに固める
-    zip --recurse-paths --junk-paths ${_DIRPATH}.zip ${_DIRPATH} 1>>${STANDART_OUTPUT} 2>>${ERROR_OUTPUT}
+    zip --recurse-paths --junk-paths "${_DIRPATH}.zip" "${_DIRPATH}" 1>>"${STANDART_OUTPUT}" 2>>"${ERROR_OUTPUT}"
     echo "${_DIRPATH} zip generation complete."
 
     return 0
@@ -77,16 +77,22 @@ function generate_zip_from_dir() {
 function generate_pdf_from_image_file_in_dir() {
 
     # 対象ディレクトリの絶対パスを変数に保存
-    local readonly _DIRPATH=`get_realpath $1`
+    local readonly _DIRPATH=`get_realpath "$1"`
 
     # DS_Storeがあれば、削除
-    delete_DS_Store ${_DIRPATH}
+    delete_DS_Store "${_DIRPATH}"
 
     # ディレクトリの中身を全てPDFへ変換
-    mogrify -format pdf ${_DIRPATH}/* 1>>${STANDART_OUTPUT} 2>>${ERROR_OUTPUT}
+    mogrify -format pdf "${_DIRPATH}/"* 1>>"${STANDART_OUTPUT}" 2>>"${ERROR_OUTPUT}"
 
-    # PDFに変換されたファイルを１つのPDFに結合(252ファイルを超えると処理できないので注意)
-    pdfunite ${_DIRPATH}/*.pdf ${_DIRPATH}.pdf 1>>${STANDART_OUTPUT} 2>>${ERROR_OUTPUT}
+    # PDFに変換されたファイルを１つのPDFに結合(1000ファイルを超えると処理できないので注意)
+    for i in {0..9} ; do
+        if [ -e "${_DIRPATH}/${i}"01.pdf -o -e "${_DIRPATH}/${i}"00.pdf ] ; then
+            pdfunite "${_DIRPATH}/${i}"*.pdf "${_DIRPATH}-${i}.pdf" 1>>"${STANDART_OUTPUT}" 2>>"${ERROR_OUTPUT}"
+        fi
+    done
+    pdfunite "${_DIRPATH}-"*.pdf "${_DIRPATH}.pdf" 1>>"${STANDART_OUTPUT}" 2>>"${ERROR_OUTPUT}"
+    rm "${_DIRPATH}-"*.pdf
     echo "${_DIRPATH} pdf generation complete."
 
     return 0
